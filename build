@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -ex
+set -e
 
 set_variables() {
   cd "$(dirname "$0")" || exit
@@ -19,12 +19,15 @@ set_variables() {
   filename="${filename%.*}"
   appdir_path="$PREFIX"/"$filename".AppDir
 
-  logo_url='https://www.google.com/url?sa=i&rct=j&q=&esrc=s&source=images&cd=&ved=2ahUKEwiqx8GP4MvmAhWSposKHerwBegQjRx6BAgBEAQ&url=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FFile%3AThunderbird_Logo%2C_2018.svg&psig=AOvVaw2TuPGS3CtPjXoph6YP6GOZ&ust=1577189832088878'
+  logo_url='https://upload.wikimedia.org/wikipedia/commons/e/e1/Thunderbird_Logo%2C_2018.svg'
   appimagetool_url='https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage'
 }
 
 main() {
-  test -z "$1" && echo 'You should run this script as ./build <path to the tar>'
+  if test -z "$1"; then
+    echo 'You should run this script as ./build <path to the tar>'
+    exit 1
+  fi
 
   set_variables "$@"
 
@@ -51,6 +54,8 @@ main() {
     # shellcheck disable=SC2016
     echo '"$PREFIX"/thunderbird/thunderbird'
   } >"$appdir_path"/AppRun
+
+  chmod +x "$appdir_path"/AppRun
 
   {
     echo '[Desktop Entry]'
