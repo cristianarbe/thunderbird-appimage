@@ -1,0 +1,89 @@
+#!/bin/sh
+
+set -ex
+
+set_variables() {
+  cd "$(dirname "$0")" || exit
+
+  # Base directory containing the AppDir
+  PREFIX="$(pwd)"
+
+  # Full path to the tar file
+  tar_path="$1"
+
+  # Tar complete file name
+  tar_name="$(basename "$tar_path")"
+
+  # Tar name without extension
+  filename="${tar_name%.*}"
+  filename="${filename%.*}"
+  appdir_path="$PREFIX"/"$filename".AppDir
+
+  logo_url='https://www.google.com/url?sa=i&rct=j&q=&esrc=s&source=images&cd=&ved=2ahUKEwiqx8GP4MvmAhWSposKHerwBegQjRx6BAgBEAQ&url=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FFile%3AThunderbird_Logo%2C_2018.svg&psig=AOvVaw2TuPGS3CtPjXoph6YP6GOZ&ust=1577189832088878'
+  appimagetool_url='https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage'
+}
+
+main() {
+  test -z "$1" && echo 'You should run this script as ./build <path to the tar>'
+
+  set_variables "$@"
+
+  test -z "$PREFIX" && exit 1
+
+  rm "$appdir_path" -rf
+  mkdir "$appdir_path" -p
+  cd "$appdir_path"
+
+  cp "$tar_path" .
+
+  tar xjfv "$tar_name"
+
+  rm "$tar_name"
+
+  {
+    echo '#!/bin/sh'
+    echo 'set -e'
+    # shellcheck disable=SC2016
+    echo 'cd "$(dirname "$0")" || exit'
+    # shellcheck disable=SC2016
+    echo 'PREFIX="$(pwd)"'
+    echo 'export PREFIX'
+    # shellcheck disable=SC2016
+    echo '"$PREFIX"/thunderbird/thunderbird'
+  } >"$appdir_path"/AppRun
+
+  {
+    echo '[Desktop Entry]'
+    echo 'Name=Thunderbird'
+    echo 'Exec=./AppRun'
+    echo 'Terminal=false'
+    echo 'Type=Application'
+    echo 'Icon=thunderbird'
+    echo 'Categories=Network;Email;Chat;'
+  } >"$appdir_path"/thunderbird.desktop
+
+  wget "$logo_url" -O "$appdir_path"/thunderbird.png
+
+  case "$(cd "$PREFIX" && ls)" in
+  *appimagetool*) ;;
+  *)
+    cd "$PREFIX"
+    wget "$appimagetool_url"
+    chmod a+x ./*AppImage
+    ;;
+  esac
+
+  tool="$(echo "$PREFIX"/appimagetool*)"
+  cd "$PREFIX"
+  "$tool" "$appdir_path"
+  chmod a+x "$PREFIX"/Thunderbird*AppImage
+
+  generated="$(echo "$PREFIX"/Thunderbird*AppImage)"
+
+  test -z "$generated" && echo 'Failed to generate AppImage' && exit 1
+
+  echo "Generated $generated successfully"
+
+}
+
+main "$@"
